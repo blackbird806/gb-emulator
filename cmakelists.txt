@@ -1,0 +1,34 @@
+cmake_minimum_required(VERSION 3.8)
+
+project(gb-emulator
+LANGUAGES CXX C
+VERSION 1.0
+)
+
+set(CMAKE_CXX_STANDARD 20)
+
+include_directories(
+	src/
+	thirdParty/
+	thirdParty/SDL2/
+	thirdParty/glad/include/
+	)
+
+file(
+	GLOB
+	source_files
+	src/*
+	thirdParty/imgui/*
+)
+
+link_directories(lib/)
+
+add_executable(${PROJECT_NAME} ${source_files})
+target_link_libraries(${PROJECT_NAME} SDL2main SDL2)
+
+# glad
+set(GLAD_DIR "thirdParty/glad")
+add_library("glad" "${GLAD_DIR}/src/glad.c")
+target_include_directories("glad" PRIVATE "${GLAD_DIR}/include")
+target_include_directories(${PROJECT_NAME} PRIVATE "${GLAD_DIR}/include")
+target_link_libraries(${PROJECT_NAME} "glad" "${CMAKE_DL_LIBS}")

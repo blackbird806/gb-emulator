@@ -15,7 +15,7 @@ class App
 	
 	void init();
 	void run();
-	void update() {};
+	void update();
 	void onGUI();
 
 	~App();
@@ -23,11 +23,13 @@ class App
 	protected:
 
 	void loadRom(std::filesystem::path const& romPath);
-
+	
 	Gameboy gb;
+	bool gbStarted = false;
 	ImGui::FileBrowser fileDialog;
 	MemoryEditor mem_edit;
 	bool disassemblerOpen = false;
+	bool gameOpen = false;
 	
 	void startFrame();
 	void endFrame();

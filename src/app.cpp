@@ -85,13 +85,18 @@ void App::init()
 		aini::Reader reader(readTextFile(fileSettingsPath));
 		if (reader.has_key("lastRomPath"))
 		{
-			loadRom(reader.get_string("lastRomPath"));
+			try {
+				loadRom(reader.get_string("lastRomPath"));
+			}
+			catch(std::exception& e) {
+				fprintf(stderr, e.what());
+			}
 		}
 	}
 	
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         fprintf(stderr, "error initializing SDL: %s\n", SDL_GetError());
-		exit(-1);
+		throw std::runtime_error("failed to init SDL");
     }
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -104,8 +109,8 @@ void App::init()
 	SDL_GLContext glContext = SDL_GL_CreateContext(window);
     if (!gladLoadGLLoader(static_cast<GLADloadproc>(SDL_GL_GetProcAddress))) {
 			fprintf(stderr, "Failed to initialize GLAD\n");
-			exit(-1);
-    	}
+			throw std::runtime_error("failed to init GLAD");
+    }
 	
 	// Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -184,6 +189,14 @@ void App::run()
 	}
 }
 
+void App::update()
+{
+	if (gbStarted)
+	{
+		gb.cpuStep();
+	}
+}
+
 void App::onGUI()
 {
 	static bool showDemo = false;
@@ -197,6 +210,12 @@ void App::onGUI()
 				fileDialog.SetTitle("File browser");
 				fileDialog.Open();
 			}
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Game"))
+		{
+			gameOpen = !gameOpen;
 			ImGui::EndMenu();
 		}
 
@@ -220,6 +239,18 @@ void App::onGUI()
 		ImGui::EndMainMenuBar();
 	}
 
+	if (gameOpen)
+	{
+		ImGui::Begin("Game");
+		if (ImGui::Button("Start"))
+		{
+			gb.start();
+			gbStarted = true;
+		}
+		
+		ImGui::End();
+	}
+
 	if (mem_edit.Open)
 		mem_edit.DrawWindow("Memory Editor", gb.mmu.rom(), MMU::romSize);
 
@@ -240,9 +271,33 @@ void App::onGUI()
 	if (disassemblerOpen)
 	{
 		ImGui::Begin("Disassembler", &disassemblerOpen);
-		for (size_t i = 0; i < MMU::romSize; i++)
+		static int minAddress = 0, maxAddress = MMU::romSize / 16;
+		ImGui::DragInt("min address", &minAddress, 8, 0, maxAddress);
+		ImGui::DragInt("max address", &maxAddress, 8, minAddress, MMU::romSize);
+		ImGuiTableFlags constexpr flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
+		if (ImGui::BeginTable("disassembler table", 3, flags))
 		{
-			ImGui::Text("%s\n", disassembleInstruction(gb.mmu.rom()[i]));
+			ImGui::PushStyleColor(ImGuiCol_Text, static_cast<ImU32>(0xFF00FF));
+			ImGui::TableSetupColumn("address");
+			ImGui::TableSetupColumn("byte");
+			ImGui::TableSetupColumn("code");
+			ImGui::PopStyleColor();
+			ImGui::TableHeadersRow();
+			
+			for (uint16_t i = minAddress; i < maxAddress; i++)
+			{
+				ImGui::TableNextColumn();
+				if (gb.registers.pc == i)
+					ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+				ImGui::Text("0x%04X\n", i);
+				ImGui::TableNextColumn();
+				ImGui::Text("0x%02X\n", gb.mmu.rom()[i]);
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(gb.disassembleInstruction(i).c_str());
+				if (gb.registers.pc == i)
+					ImGui::PopStyleColor();
+			}
+			ImGui::EndTable();
 		}
 		ImGui::End();
 	}

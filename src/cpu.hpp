@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <variant>
+#include <bit>
 
 struct Registers {
 	
@@ -23,22 +24,22 @@ struct Registers {
 
 	uint16_t& af()
 	{
-		return *reinterpret_cast<uint16_t*>(&a);
+		return *std::bit_cast<uint16_t*>(&a);
 	}
 	
 	uint16_t& bc()
 	{
-		return *reinterpret_cast<uint16_t*>(&b);
+		return *std::bit_cast<uint16_t*>(&b);
 	}
 
 	uint16_t& de()
 	{
-		return *reinterpret_cast<uint16_t*>(&d);
+		return *std::bit_cast<uint16_t*>(&d);
 	}
 
 	uint16_t& hl()
 	{
-		return *reinterpret_cast<uint16_t*>(&h);
+		return *std::bit_cast<uint16_t*>(&h);
 	}
 };
 
@@ -51,7 +52,7 @@ using InstructionOpFn = std::variant<
 
 struct Instruction
 {
-	uint8_t len;
+	uint8_t operandLen;
 	uint8_t cycles;
 	InstructionOpFn op;
 };
@@ -59,4 +60,3 @@ struct Instruction
 extern Instruction instructions[256];
 extern const char* instructions_names[256];
 
-const char* disassembleInstruction(int opCode);

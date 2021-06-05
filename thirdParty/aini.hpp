@@ -128,7 +128,7 @@ namespace aini
 	ValueType Reader::get_value_type(const char* key, const char* section)
 	{
 		auto const& value = sections[section][key];
-		if (isalnum(value[0]))
+		if (isalnum(value[0]) || value[0] == '-')
 		{
 			if (std::find(value.begin(), value.end(), '.') != value.end())
 				return ValueType::Float;

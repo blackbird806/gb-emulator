@@ -252,7 +252,7 @@ void App::onGUI()
 	}
 
 	if (mem_edit.Open)
-		mem_edit.DrawWindow("Memory Editor", gb.mmu.rom(), MMU::romSize);
+		mem_edit.DrawWindow("Memory Editor", gb.mmu.memMap, sizeof(gb.mmu.memMap));
 
 	fileDialog.Display();
 	if (fileDialog.HasSelected())

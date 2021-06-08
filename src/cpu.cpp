@@ -6,15 +6,27 @@ static void nop(Gameboy&)
 
 }
 
+static void stop(Gameboy& gb)
+{
+	
+}
+
+static void rlca(Gameboy& gb)
+{
+	
+}
+
 static void ld_bc_nn(Gameboy& gb, uint16_t value)
 {
 	gb.registers.bc() = value;
 }
 
-static void ld_bc_a(Gameboy& gb)
-{
-	gb.mmu.memMap[gb.registers.bc()] = gb.registers.a;
-}
+#define LD_DRR_R(r1, r2) static void ld_##r1##_##r2##(Gameboy& gb) { gb.mmu.memMap[gb.registers.##r1##()] = gb.registers.##r2; }
+LD_DRR_R(bc, a)
+
+#define LD_R_DRR(r1, r2) static void ld_##r1##_##r2##(Gameboy& gb) { gb.registers.##r1 = gb.mmu.memMap[gb.registers.##r2##()]; }
+LD_R_DRR(a, bc)
+LD_R_DRR(a, de)
 
 #define LD_RR(r1, r2) static void ld_##r1##_##r2(Gameboy& gb) { gb.registers.##r1 = gb.registers.##r2; }
 LD_RR(a, b)
@@ -35,35 +47,110 @@ LD_RN(e)
 LD_RN(h)
 LD_RN(l)
 
-#define INC_REG_FN_DECL(r) static void inc_##r(Gameboy& gb) { gb.registers.##r++; }
-INC_REG_FN_DECL(a)
-INC_REG_FN_DECL(b)
-INC_REG_FN_DECL(c)
-INC_REG_FN_DECL(d)
-INC_REG_FN_DECL(e)
-INC_REG_FN_DECL(h)
-INC_REG_FN_DECL(l)
+#define INC_R(r) static void inc_##r(Gameboy& gb) { gb.registers.##r++; }
+INC_R(a)
+INC_R(b)
+INC_R(c)
+INC_R(d)
+INC_R(e)
+INC_R(h)
+INC_R(l)
 
-#define DEC_REG_FN_DECL(r) static void dec_##r(Gameboy& gb) { gb.registers.##r--; }
-DEC_REG_FN_DECL(a)
-DEC_REG_FN_DECL(b)
-DEC_REG_FN_DECL(c)
-DEC_REG_FN_DECL(d)
-DEC_REG_FN_DECL(e)
-DEC_REG_FN_DECL(h)
-DEC_REG_FN_DECL(l)
+INC_R(sp)
 
-#define INC_WIDE_REG_FN_DECL(r) static void inc_##r(Gameboy& gb) { gb.registers.##r()++; }
-INC_WIDE_REG_FN_DECL(af)
-INC_WIDE_REG_FN_DECL(bc)
-INC_WIDE_REG_FN_DECL(de)
-INC_WIDE_REG_FN_DECL(hl)
+#define DEC_R(r) static void dec_##r(Gameboy& gb) { gb.registers.##r--; }
+DEC_R(a)
+DEC_R(b)
+DEC_R(c)
+DEC_R(d)
+DEC_R(e)
+DEC_R(h)
+DEC_R(l)
 
-#define DEC_WIDE_REG_FN_DECL(r) static void dec_##r(Gameboy& gb) { gb.registers.##r()--; }
-DEC_WIDE_REG_FN_DECL(af)
-DEC_WIDE_REG_FN_DECL(bc)
-DEC_WIDE_REG_FN_DECL(de)
-DEC_WIDE_REG_FN_DECL(hl)
+DEC_R(sp)
+
+#define INC_RR(r) static void inc_##r(Gameboy& gb) { gb.registers.##r()++; }
+INC_RR(af)
+INC_RR(bc)
+INC_RR(de)
+INC_RR(hl)
+
+#define DEC_RR(r) static void dec_##r(Gameboy& gb) { gb.registers.##r()--; }
+DEC_RR(af)
+DEC_RR(bc)
+DEC_RR(de)
+DEC_RR(hl)
+
+#define ADD_R(r) static void add_##r(Gameboy& gb) { gb.registers.a += gb.registers.##r; }
+ADD_R(a)
+ADD_R(b)
+ADD_R(c)
+ADD_R(d)
+ADD_R(e)
+ADD_R(h)
+ADD_R(l)
+
+#define SUB_R(r) static void sub_##r(Gameboy& gb) { gb.registers.a -= gb.registers.##r; }
+SUB_R(a)
+SUB_R(b)
+SUB_R(c)
+SUB_R(d)
+SUB_R(e)
+SUB_R(h)
+SUB_R(l)
+
+static void add_n(Gameboy& gb, uint8_t value)
+{
+	gb.registers.a += value;
+}
+
+static void sub_n(Gameboy& gb, uint8_t value)
+{
+	gb.registers.a -= value;
+}
+
+#define XOR_R(r) static void xor_##r(Gameboy& gb) { gb.registers.a ^= gb.registers.##r; }
+XOR_R(a)
+XOR_R(b)
+XOR_R(c)
+XOR_R(d)
+XOR_R(e)
+XOR_R(h)
+XOR_R(l)
+
+static void xor_n(Gameboy& gb, uint8_t value)
+{
+	gb.registers.a ^= value;
+}
+
+#define AND_R(r) static void and_##r(Gameboy& gb) { gb.registers.a &= gb.registers.##r; }
+AND_R(a)
+AND_R(b)
+AND_R(c)
+AND_R(d)
+AND_R(e)
+AND_R(h)
+AND_R(l)
+
+static void and_n(Gameboy& gb, uint8_t value)
+{
+	gb.registers.a &= value;
+}
+
+#define OR_R(r) static void or_##r(Gameboy& gb) { gb.registers.a |= gb.registers.##r; }
+OR_R(a)
+OR_R(b)
+OR_R(c)
+OR_R(d)
+OR_R(e)
+OR_R(h)
+OR_R(l)
+
+static void or_n(Gameboy& gb, uint8_t value)
+{
+	gb.registers.a |= value;
+}
+
 
 #define UNDEFINED_INSTRUCTION {0, 0, nop, "UNDEFINED"}
 
@@ -71,10 +158,54 @@ Instruction instructions[256] = {
 	{ 1, 4, nop, "NOP"},
 	{ 3, 6, ld_bc_nn, "LD BC, 0x%04X" },
 	{ 1, 8, ld_bc_a, "LD (BC), A" },
-	{ 1, 4, inc_bc, "INC BC" },
-	{ 1, 4, inc_b, "INC B" },
+	{ 1, 8, inc_bc, "INC BC" }, // 03
+	{ 1, 4, inc_b, "INC B" }, // 04
 	{ 1, 4, dec_b, "DEC B" },
 	{ 2, 4, ld_b_n, "LD B, 0x%02X" },
+	{ 1, 4, rlca, "RLCA" },
+	UNDEFINED_INSTRUCTION,
+	{ 1, 8, ld_a_bc, "LD A,(BC)" }, // 0A
+	{ 1, 8, dec_bc, "DEC BC" }, //0B
+	{ 1, 4, inc_c, "INC C" }, //0C
+	{ 1, 4, dec_c, "DEC C" }, // 0D
+	UNDEFINED_INSTRUCTION, // 0E
+	UNDEFINED_INSTRUCTION, // 0F
+	{1, 0, stop, "STOP"}, // 10
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION,
+	{ 1, 4, inc_d, "INC D" }, // 14
+	{ 1, 4, dec_d, "DEC D" },
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION,
+	{ 1, 8, ld_a_de, "LD A,(DE)" }, // 1A
+	{ 1, 8, dec_de, "DEC DE" },
+	{ 1, 4, inc_e, "INC E" },
+	{ 1, 4, dec_e, "DEC E" }, // 1D
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION, // 1F
+	UNDEFINED_INSTRUCTION, // 20
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION,
+	{ 1, 8, inc_hl, "INC HL" }, // 23
+	{ 1, 4, inc_h, "INC H" },
+	{ 1, 4, dec_h, "DEC H" },
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION,
+	{ 1, 8, dec_hl, "DEC HL" }, // 2B
+	{ 1, 4, inc_l, "INC L" },
+	{ 1, 4, dec_l, "DEC L" },
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION, // 30
+	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION,
+	{ 1, 8, inc_sp, "INC SP" }, // 33
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,
@@ -82,56 +213,12 @@ Instruction instructions[256] = {
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,
+	{ 1, 8, dec_sp, "DEC SP" }, // 3B
+	{ 1, 4, inc_a, "INC A" },
+	{ 1, 4, dec_a, "DEC A" }, // 3D
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
+	UNDEFINED_INSTRUCTION, // 40
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,

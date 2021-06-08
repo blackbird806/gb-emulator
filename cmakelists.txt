@@ -12,7 +12,7 @@ include_directories(
 	thirdParty/
 	thirdParty/SDL2/
 	thirdParty/glad/include/
-	)
+)
 
 file(
 	GLOB

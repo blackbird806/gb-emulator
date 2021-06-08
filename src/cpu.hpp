@@ -52,11 +52,11 @@ using InstructionOpFn = std::variant<
 
 struct Instruction
 {
-	uint8_t operandLen;
+	uint8_t len;
 	uint8_t cycles;
 	InstructionOpFn op;
+	const char* name;
 };
 
 extern Instruction instructions[256];
-extern const char* instructions_names[256];
 

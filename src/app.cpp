@@ -284,7 +284,7 @@ void App::onGUI()
 			ImGui::PopStyleColor();
 			ImGui::TableHeadersRow();
 			
-			for (uint16_t i = minAddress; i < maxAddress; i++)
+			for (uint16_t i = minAddress; i < maxAddress;)
 			{
 				ImGui::TableNextColumn();
 				if (gb.registers.pc == i)
@@ -296,6 +296,7 @@ void App::onGUI()
 				ImGui::TextUnformatted(gb.disassembleInstruction(i).c_str());
 				if (gb.registers.pc == i)
 					ImGui::PopStyleColor();
+				i += instructions[gb.mmu.rom()[i]].len > 0 ? instructions[gb.mmu.rom()[i]].len : 1;
 			}
 			ImGui::EndTable();
 		}

@@ -16,11 +16,6 @@ static void ld_bc_a(Gameboy& gb)
 	gb.mmu.memMap[gb.registers.bc()] = gb.registers.a;
 }
 
-static void ld_b_n(Gameboy& gb, uint8_t value)
-{
-	gb.registers.b = value;
-}
-
 #define LD_RR(r1, r2) static void ld_##r1##_##r2(Gameboy& gb) { gb.registers.##r1 = gb.registers.##r2; }
 LD_RR(a, b)
 LD_RR(b, a)
@@ -70,16 +65,16 @@ DEC_WIDE_REG_FN_DECL(bc)
 DEC_WIDE_REG_FN_DECL(de)
 DEC_WIDE_REG_FN_DECL(hl)
 
-#define UNDEFINED_INSTRUCTION {255, 0, nop}
+#define UNDEFINED_INSTRUCTION {0, 0, nop, "UNDEFINED"}
 
 Instruction instructions[256] = {
-	{0, 4, nop},
-	{ 2, 6, ld_bc_nn },
-	{ 0, 8, ld_bc_a },
-	{ 0, 4, inc_bc },
-	{ 0, 4, inc_b },
-	{ 0, 4, dec_b },
-	{ 1, 4, ld_b_n },
+	{ 1, 4, nop, "NOP"},
+	{ 3, 6, ld_bc_nn, "LD BC, 0x%04X" },
+	{ 1, 8, ld_bc_a, "LD (BC), A" },
+	{ 1, 4, inc_bc, "INC BC" },
+	{ 1, 4, inc_b, "INC B" },
+	{ 1, 4, dec_b, "DEC B" },
+	{ 2, 4, ld_b_n, "LD B, 0x%02X" },
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,
@@ -329,15 +324,4 @@ Instruction instructions[256] = {
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,
-};
-
-const char* instructions_names[256] = {
-	"NOP",
-	"LD BC, 0x%04X",
-	"LD (BC), A",
-	"INC BC",
-	"INC B",
-	"DEC B",
-	"LD B, 0x%02X",
-	"UNDEFINED",
 };

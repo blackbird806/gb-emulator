@@ -49,19 +49,18 @@ void Gameboy::start()
 	// mmu.memMap[0xFFFF] = 0x00; // IE
 }
 
-
 void Gameboy::cpuStep()
 {
 	Instruction const instr = instructions[mmu.rom()[registers.pc]];
-	switch (instr.operandLen)
+	switch (instr.len)
 	{
-		case 0:
+		case 1:
 			std::get<void(*)(Gameboy&)>(instr.op)(*this);
 			break;
-		case 1:
+		case 2:
 			std::get<void(*)(Gameboy&, uint8_t)>(instr.op)(*this, mmu.readByte(registers.pc + 1));
 			break;
-		case 2:
+		case 3:
 			std::get<void(*)(Gameboy&, uint16_t)>(instr.op)(*this, mmu.readShort(registers.pc + 1));
 			break;
 		default:
@@ -76,15 +75,16 @@ std::string Gameboy::disassembleInstruction(uint16_t address)
 {
 	uint8_t const opCode = mmu.rom()[address];
 	Instruction const instr = instructions[opCode];
-	if (instr.operandLen > 0)
+
+	if (instr.len > 1)
 	{
 		char buffer[30];
-		if (instr.operandLen == 1)
-			snprintf(buffer, sizeof(buffer), instructions_names[opCode], mmu.readByte(address + 1));
+		if (instr.len == 2)
+			snprintf(buffer, sizeof(buffer), instr.name, mmu.readByte(address + 1));
 		else
-			snprintf(buffer, sizeof(buffer), instructions_names[opCode], mmu.readShort(address + 1));
+			snprintf(buffer, sizeof(buffer), instr.name, mmu.readShort(address + 1));
 		return std::string(buffer);
 	}
 	
-	return instructions_names[opCode] != nullptr ? instructions_names[opCode] : "";
+	return instr.name;
 }

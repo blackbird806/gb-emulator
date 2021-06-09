@@ -21,6 +21,9 @@ static void ld_bc_nn(Gameboy& gb, uint16_t value)
 	gb.registers.bc() = value;
 }
 
+#define EACH_R(M, ...) M(a, __VA_ARGS__) M(b, __VA_ARGS__) M(c, __VA_ARGS__) M(d, __VA_ARGS__) M(e, __VA_ARGS__) M(h, __VA_ARGS__) M(l, __VA_ARGS__)
+#define EACH_RR(M) M(af) M(bc) M(de) M(hl)
+
 #define LD_DRR_R(r1, r2) static void ld_##r1##_##r2##(Gameboy& gb) { gb.mmu.memMap[gb.registers.##r1##()] = gb.registers.##r2; }
 LD_DRR_R(bc, a)
 
@@ -39,65 +42,31 @@ LD_RR(a, d)
 LD_RR(d, b)
 
 #define LD_RN(r) static void ld_##r##_n(Gameboy& gb, uint8_t value) { gb.registers.##r = value; }
-LD_RN(a)
-LD_RN(b)
-LD_RN(c)
-LD_RN(d)
-LD_RN(e)
-LD_RN(h)
-LD_RN(l)
+EACH_R(LD_RN)
 
 #define INC_R(r) static void inc_##r(Gameboy& gb) { gb.registers.##r++; }
-INC_R(a)
-INC_R(b)
-INC_R(c)
-INC_R(d)
-INC_R(e)
-INC_R(h)
-INC_R(l)
-
+EACH_R(INC_R)
 INC_R(sp)
 
 #define DEC_R(r) static void dec_##r(Gameboy& gb) { gb.registers.##r--; }
-DEC_R(a)
-DEC_R(b)
-DEC_R(c)
-DEC_R(d)
-DEC_R(e)
-DEC_R(h)
-DEC_R(l)
-
+EACH_R(DEC_R)
 DEC_R(sp)
 
 #define INC_RR(r) static void inc_##r(Gameboy& gb) { gb.registers.##r()++; }
-INC_RR(af)
-INC_RR(bc)
-INC_RR(de)
-INC_RR(hl)
+EACH_RR(INC_RR)
 
 #define DEC_RR(r) static void dec_##r(Gameboy& gb) { gb.registers.##r()--; }
-DEC_RR(af)
-DEC_RR(bc)
-DEC_RR(de)
-DEC_RR(hl)
+EACH_RR(DEC_RR)
+
+#define BIN_OP(r, opname, op) static void opname##_##r(Gameboy& gb) { gb.registers.a op gb.registers.##r; }
+// for some reason this doesn't compiles on MSVC
+//EACH_R(BIN_OP, add, +=)
 
 #define ADD_R(r) static void add_##r(Gameboy& gb) { gb.registers.a += gb.registers.##r; }
-ADD_R(a)
-ADD_R(b)
-ADD_R(c)
-ADD_R(d)
-ADD_R(e)
-ADD_R(h)
-ADD_R(l)
+EACH_R(ADD_R)
 
 #define SUB_R(r) static void sub_##r(Gameboy& gb) { gb.registers.a -= gb.registers.##r; }
-SUB_R(a)
-SUB_R(b)
-SUB_R(c)
-SUB_R(d)
-SUB_R(e)
-SUB_R(h)
-SUB_R(l)
+EACH_R(SUB_R)
 
 static void add_n(Gameboy& gb, uint8_t value)
 {
@@ -110,13 +79,7 @@ static void sub_n(Gameboy& gb, uint8_t value)
 }
 
 #define XOR_R(r) static void xor_##r(Gameboy& gb) { gb.registers.a ^= gb.registers.##r; }
-XOR_R(a)
-XOR_R(b)
-XOR_R(c)
-XOR_R(d)
-XOR_R(e)
-XOR_R(h)
-XOR_R(l)
+EACH_R(XOR_R)
 
 static void xor_n(Gameboy& gb, uint8_t value)
 {
@@ -124,13 +87,7 @@ static void xor_n(Gameboy& gb, uint8_t value)
 }
 
 #define AND_R(r) static void and_##r(Gameboy& gb) { gb.registers.a &= gb.registers.##r; }
-AND_R(a)
-AND_R(b)
-AND_R(c)
-AND_R(d)
-AND_R(e)
-AND_R(h)
-AND_R(l)
+EACH_R(AND_R)
 
 static void and_n(Gameboy& gb, uint8_t value)
 {
@@ -138,13 +95,7 @@ static void and_n(Gameboy& gb, uint8_t value)
 }
 
 #define OR_R(r) static void or_##r(Gameboy& gb) { gb.registers.a |= gb.registers.##r; }
-OR_R(a)
-OR_R(b)
-OR_R(c)
-OR_R(d)
-OR_R(e)
-OR_R(h)
-OR_R(l)
+EACH_R(OR_R)
 
 static void or_n(Gameboy& gb, uint8_t value)
 {

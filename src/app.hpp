@@ -29,7 +29,6 @@ class App
 	ImGui::FileBrowser fileDialog;
 	MemoryEditor mem_edit;
 	bool disassemblerOpen = false;
-	bool gameOpen = false;
 	
 	void startFrame();
 	void endFrame();

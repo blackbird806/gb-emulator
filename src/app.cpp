@@ -215,7 +215,11 @@ void App::onGUI()
 
 		if (ImGui::BeginMenu("Game"))
 		{
-			gameOpen = !gameOpen;
+			if (ImGui::MenuItem("Start Game"))
+			{
+				gb.start();
+				gbStarted = true;
+			}
 			ImGui::EndMenu();
 		}
 
@@ -237,18 +241,6 @@ void App::onGUI()
 		}
 
 		ImGui::EndMainMenuBar();
-	}
-
-	if (gameOpen)
-	{
-		ImGui::Begin("Game");
-		if (ImGui::Button("Start"))
-		{
-			gb.start();
-			gbStarted = true;
-		}
-		
-		ImGui::End();
 	}
 
 	if (mem_edit.Open)

@@ -41,7 +41,30 @@ struct Registers {
 	{
 		return *std::bit_cast<uint16_t*>(&h);
 	}
+
+	static uint8_t constexpr zeroFlag = 1 << 7;
+	static uint8_t constexpr negativeFlag = 1 << 6;
+	static uint8_t constexpr halfCarryFlag = 1 << 5;
+	static uint8_t constexpr carryFlag = 1 << 4;
+
+
+	bool isFlagSet(uint8_t flag) const
+	{
+		return f & flag;
+	}
+
+	void setFlag(uint8_t flag)
+	{
+		f |= flag;
+	}
+
+	void clearFlag(uint8_t flag)
+	{
+		f &= ~flag;
+	}
 };
+
+
 
 struct Gameboy;
 

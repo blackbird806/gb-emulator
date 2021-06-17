@@ -29,9 +29,12 @@ class App
 	ImGui::FileBrowser fileDialog;
 	MemoryEditor mem_edit;
 	bool disassemblerOpen = false;
+	bool spriteViewerOpen = false;
 	
 	void startFrame();
 	void endFrame();
 	bool endApp = false;
+	bool romLoaded = false;
 	SDL_Window* window;
+	SDL_Renderer* renderer;
 };

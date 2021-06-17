@@ -53,12 +53,12 @@ struct Registers {
 		return f & flag;
 	}
 
-	void setFlag(uint8_t flag)
+	void setFlags(uint8_t flag)
 	{
 		f |= flag;
 	}
 
-	void clearFlag(uint8_t flag)
+	void clearFlags(uint8_t flag)
 	{
 		f &= ~flag;
 	}

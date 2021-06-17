@@ -52,7 +52,7 @@ static void initDockspace()
 	ImGuiIO& io = ImGui::GetIO();
 	if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
 	{
-		ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+		ImGuiID const dockspace_id = ImGui::GetID("MyDockSpace");
 		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 	}
 
@@ -80,20 +80,6 @@ static std::vector<uint8_t> readBinFile(std::filesystem::path const& path)
 
 void App::init()
 {
-	if (std::filesystem::exists(fileSettingsPath))
-	{
-		aini::Reader reader(readTextFile(fileSettingsPath));
-		if (reader.has_key("lastRomPath"))
-		{
-			try {
-				loadRom(reader.get_string("lastRomPath"));
-			}
-			catch(std::exception& e) {
-				fprintf(stderr, e.what());
-			}
-		}
-	}
-	
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
         fprintf(stderr, "error initializing SDL: %s\n", SDL_GetError());
 		throw std::runtime_error("failed to init SDL");
@@ -105,12 +91,19 @@ void App::init()
                                        SDL_WINDOWPOS_UNDEFINED,
                                        SDL_WINDOWPOS_UNDEFINED,
                                        1280, 720, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
-
+	if (window == nullptr)
+	{
+		fprintf(stderr, "%s", SDL_GetError());
+		throw std::runtime_error("failed to create SDL_Window");
+	}
+	
 	SDL_GLContext glContext = SDL_GL_CreateContext(window);
     if (!gladLoadGLLoader(static_cast<GLADloadproc>(SDL_GL_GetProcAddress))) {
 			fprintf(stderr, "Failed to initialize GLAD\n");
 			throw std::runtime_error("failed to init GLAD");
     }
+
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 	
 	// Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -136,6 +129,20 @@ void App::init()
     ImGui_ImplOpenGL3_Init();
 
 	mem_edit.Open = false;
+
+	if (std::filesystem::exists(fileSettingsPath))
+	{
+		aini::Reader reader(readTextFile(fileSettingsPath));
+		if (reader.has_key("lastRomPath"))
+		{
+			try {
+				loadRom(reader.get_string("lastRomPath"));
+			}
+			catch (std::exception const& e) {
+				fprintf(stderr, "%s", e.what());
+			}
+		}
+	}
 }
 
 void App::startFrame()
@@ -157,14 +164,13 @@ void App::startFrame()
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplSDL2_NewFrame(window);
 	ImGui::NewFrame();
-
+	
 	initDockspace();
 }
 
 void App::endFrame()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
 	ImGui::Render();
 	
 	ImGuiIO& io = ImGui::GetIO();
@@ -222,7 +228,7 @@ void App::onGUI()
 			}
 			ImGui::EndMenu();
 		}
-
+		
 		if (ImGui::BeginMenu("Tools"))
 		{
 			if (ImGui::MenuItem("Memory editor"))
@@ -232,6 +238,10 @@ void App::onGUI()
 			if (ImGui::MenuItem("Disassembler"))
 			{
 				disassemblerOpen = !disassemblerOpen;
+			}
+			if (ImGui::MenuItem("Sprite viewer"))
+			{
+				spriteViewerOpen = !spriteViewerOpen;
 			}
 			if (ImGui::MenuItem("demo win"))
 			{
@@ -259,7 +269,7 @@ void App::onGUI()
 		loadRom(fileDialog.GetSelected());
 		fileDialog.ClearSelected();
 	}
-
+	
 	if (disassemblerOpen)
 	{
 		ImGui::Begin("Disassembler", &disassemblerOpen);
@@ -269,7 +279,7 @@ void App::onGUI()
 		ImGuiTableFlags constexpr flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
 		if (ImGui::BeginTable("disassembler table", 3, flags))
 		{
-			ImGui::PushStyleColor(ImGuiCol_Text, static_cast<ImU32>(0xFF00FF));
+			ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
 			ImGui::TableSetupColumn("address");
 			ImGui::TableSetupColumn("byte");
 			ImGui::TableSetupColumn("code");
@@ -294,6 +304,13 @@ void App::onGUI()
 		}
 		ImGui::End();
 	}
+	
+	if (spriteViewerOpen)
+	{
+		ImGui::Begin("SpriteViewer", &spriteViewerOpen);
+		ImGui::End();
+	}
+	
 	if (showDemo)
 		ImGui::ShowDemoWindow(&showDemo);
 }
@@ -316,6 +333,12 @@ void App::loadRom(std::filesystem::path const& romPath)
 		fileDialog.ClearSelected();
 		return;
 	}
+	
 	file.seekg(0, std::ios::beg);
 	file.read(reinterpret_cast<char*>(gb.mmu.rom()), size);
+	romLoaded = true;
+	
+	char buffer[30];
+	snprintf(buffer, sizeof(buffer), "gb-emulator - %s", gb.mmu.romName());
+	SDL_SetWindowTitle(window, buffer);
 }

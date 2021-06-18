@@ -18,7 +18,6 @@ struct Registers {
 	uint8_t h;
 	uint8_t l;
 	
-	uint8_t flags;
 	uint16_t sp;
 	uint16_t pc;
 

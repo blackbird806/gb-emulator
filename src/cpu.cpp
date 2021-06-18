@@ -89,9 +89,23 @@ EACH_R(LD_R_N)
 #define LD_RR_NN(r) static void ld_##r##_nn(Gameboy& gb, uint16_t value) { gb.registers.##r##() = value; }
 EACH_RR(LD_RR_NN)
 
+#define LD_DNN_RR(r) static void ld_dnn_##r(Gameboy& gb, uint16_t value) { gb.mmu.writeShort(value, gb.registers.##r()); }
+EACH_RR(LD_DNN_RR)
+
+static void ld_dnn_sp(Gameboy& gb, uint16_t value)
+{
+	gb.mmu.writeShort(value, gb.registers.sp);
+}
+
+static void ld_dde_a(Gameboy& gb)
+{
+	gb.mmu.writeByte(gb.registers.de(), gb.registers.a);
+}
+
 #define INC_R(r) static void inc_##r(Gameboy& gb) { gb.registers.##r++; }
 EACH_R(INC_R)
 INC_R(sp)
+
 
 #define DEC_R(r) static void dec_##r(Gameboy& gb) { gb.registers.##r--; }
 EACH_R(DEC_R)
@@ -113,6 +127,8 @@ EACH_R(ADD_R)
 #define SUB_R(r) static void sub_##r(Gameboy& gb) { gb.registers.a -= gb.registers.##r; }
 EACH_R(SUB_R)
 
+#define ADD_RR(r) static void add_##r(Gameboy& gb) { gb.registers.hl() = gb.registers.##r(); }
+EACH_RR(ADD_RR)
 
 static void add_n(Gameboy& gb, uint8_t value)
 {
@@ -186,6 +202,36 @@ static void jp_nn(Gameboy& gb, uint8_t value)
 	gb.registers.pc = value;
 }
 
+static void rrca(Gameboy& gb)
+{
+	uint8_t const carry = gb.registers.a & 0x01;
+	if (carry)  
+		gb.registers.setFlags(Registers::carryFlag);
+	else
+		gb.registers.clearFlags(Registers::carryFlag);
+
+	gb.registers.a >>= 1;
+	if (carry) 
+		gb.registers.a |= 0x80;
+
+	gb.registers.clearFlags(Registers::negativeFlag | Registers::zeroFlag | Registers::halfCarryFlag);
+}
+
+static void rla(Gameboy& gb)
+{
+	uint8_t const carry = gb.registers.isFlagSet(Registers::carryFlag) ? 1 : 0;
+
+	if (gb.registers.a & 0x80) 
+		gb.registers.setFlags(Registers::carryFlag);
+	else
+		gb.registers.clearFlags(Registers::carryFlag);
+
+	gb.registers.a <<= 1;
+	gb.registers.a += carry;
+
+	gb.registers.clearFlags(Registers::negativeFlag | Registers::zeroFlag | Registers::halfCarryFlag);
+}
+
 #define UNDEFINED_INSTRUCTION {0, 0, nop, "UNDEFINED"}
 
 Instruction instructions[256] = {
@@ -197,22 +243,22 @@ Instruction instructions[256] = {
 	{ 1, 4, dec_b, "DEC B" }, // 05
 	{ 2, 4, ld_b_n, "LD B, 0x%02X" }, // 06
 	{ 1, 4, rlca, "RLCA" }, // 07
-	UNDEFINED_INSTRUCTION, // 08
-	UNDEFINED_INSTRUCTION, // 09
+	{ 3, 16, ld_dnn_sp, "LD (0x%04X), SP" }, // 08
+	{ 1, 8, add_bc, "ADD BC"}, // 09
 	{ 1, 8, ld_a_bc, "LD A, (BC)" }, // 0A
-	{ 1, 8, dec_bc, "DEC BC" }, //0B
-	{ 1, 4, inc_c, "INC C" }, //0C
+	{ 1, 8, dec_bc, "DEC BC" }, // 0B
+	{ 1, 4, inc_c, "INC C" }, // 0C
 	{ 1, 4, dec_c, "DEC C" }, // 0D
-	UNDEFINED_INSTRUCTION, // 0E
-	UNDEFINED_INSTRUCTION, // 0F
+	{ 2, 8, ld_c_n, "LD C, 0x%02X" }, // 0E
+	{ 1, 4, rrca, "RRCA"}, // 0F
 	{ 1, 0, stop, "STOP" }, // 10
-	{ 3, 8, ld_de_nn, "LD DE, 0x%04X" }, //11
-	UNDEFINED_INSTRUCTION, // 12
+	{ 3, 8, ld_de_nn, "LD DE, 0x%04X" }, // 11
+	{ 1, 8, ld_dde_a, "LD (DE), A" }, // 12
 	{ 1, 8, inc_de, "INC DE" }, // 13
 	{ 1, 4, inc_d, "INC D" }, // 14
 	{ 1, 4, dec_d, "DEC D" }, // 15
-	UNDEFINED_INSTRUCTION, // 16
-	UNDEFINED_INSTRUCTION, //17
+	{ 2, 8, ld_d_n, "LD D, 0x%02X" }, // 16
+	{ 1, 4, rla, "RLA" }, //17
 	UNDEFINED_INSTRUCTION, // 18
 	UNDEFINED_INSTRUCTION, // 19
 	{ 1, 8, ld_a_de, "LD A,(DE)" }, // 1A

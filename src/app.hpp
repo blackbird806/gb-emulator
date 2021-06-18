@@ -30,6 +30,9 @@ class App
 	MemoryEditor mem_edit;
 	bool disassemblerOpen = false;
 	bool spriteViewerOpen = false;
+	bool debuggerOpen = false;
+	bool stepDebug = false;
+	bool nextStep = false;
 	
 	void startFrame();
 	void endFrame();

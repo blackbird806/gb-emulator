@@ -7,6 +7,8 @@
 #include <cstdio>
 #include <fstream>
 
+#include "imguiExt.hpp"
+
 #define AINI_IMPLEMENTATION
 #include "aini.hpp"
 
@@ -199,7 +201,11 @@ void App::update()
 {
 	if (gbStarted)
 	{
-		gb.cpuStep();
+		if ((stepDebug && nextStep) || !stepDebug)
+		{
+			gb.cpuStep();
+			nextStep = false;
+		}
 	}
 }
 
@@ -242,6 +248,10 @@ void App::onGUI()
 			if (ImGui::MenuItem("Sprite viewer"))
 			{
 				spriteViewerOpen = !spriteViewerOpen;
+			}
+			if (ImGui::MenuItem("Debbugger"))
+			{
+				debuggerOpen = !debuggerOpen;
 			}
 			if (ImGui::MenuItem("demo win"))
 			{
@@ -302,6 +312,45 @@ void App::onGUI()
 			}
 			ImGui::EndTable();
 		}
+		ImGui::End();
+	}
+
+	if (debuggerOpen)
+	{
+		ImGui::Begin("Debugger", &debuggerOpen);
+		ImGui::Checkbox("Enable step debugging", &stepDebug);
+		
+		if (stepDebug)
+		{
+			if (ImGui::Button("STEP"))
+			{
+				nextStep = true;
+			}
+		}
+		
+		ImGui::Separator();
+		ImGui::TextUnformatted("Registers");
+		ImGui::Text("A: %d\tB: %d\nC: %d\tD: %d\nE: %d\tH: %d\nL: %d", 
+			gb.registers.a, gb.registers.b, gb.registers.c, gb.registers.d, gb.registers.e, gb.registers.h, gb.registers.l);
+		ImGui::Text("AF: %d\tBC: %d\nDE: %d\tHL: %d\nSP: %d\tPC: %d",
+			gb.registers.af(), gb.registers.bc(), gb.registers.de(), gb.registers.hl(), gb.registers.sp, gb.registers.pc);
+
+		ImGui::Separator();
+		ImGui::Text("Flags: %d", gb.registers.f);
+
+		ImGui::PushEnabled(false);
+
+		bool fb = gb.registers.isFlagSet(Registers::carryFlag);
+		ImGui::Checkbox("Carry", &fb);
+		fb = gb.registers.isFlagSet(Registers::halfCarryFlag);
+		ImGui::Checkbox("HalfCarry", &fb);
+		fb = gb.registers.isFlagSet(Registers::zeroFlag);
+		ImGui::Checkbox("Zero", &fb);
+		fb = gb.registers.isFlagSet(Registers::negativeFlag);
+		ImGui::Checkbox("Negative", &fb);
+
+		ImGui::PopEnabled();
+		
 		ImGui::End();
 	}
 	

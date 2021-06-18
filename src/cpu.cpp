@@ -197,7 +197,7 @@ EACH_RR(PUSH_RR)
 #define POP_RR(rr) static void pop_##rr(Gameboy& gb) { gb.registers.##rr() = gb.mmu.readShort(gb.registers.sp); gb.registers.sp += 2; }
 EACH_RR(POP_RR)
 
-static void jp_nn(Gameboy& gb, uint8_t value)
+static void jp_nn(Gameboy& gb, uint16_t value)
 {
 	gb.registers.pc = value;
 }
@@ -232,6 +232,26 @@ static void rla(Gameboy& gb)
 	gb.registers.clearFlags(Registers::negativeFlag | Registers::zeroFlag | Registers::halfCarryFlag);
 }
 
+static void call_z_nn(Gameboy& gb, uint16_t value)
+{
+	if (gb.registers.isFlagSet(Registers::zeroFlag))
+	{
+		gb.registers.sp -= 2;
+		gb.mmu.writeShort(gb.registers.sp, gb.registers.pc);
+		gb.registers.pc = value;
+		gb.ticks += 24;
+	}
+	else
+		gb.ticks += 12;
+}
+
+static void call_nn(Gameboy& gb, uint16_t value)
+{
+	gb.registers.sp -= 2;
+	gb.mmu.writeShort(gb.registers.sp, gb.registers.pc);
+	gb.registers.pc = value;
+}
+
 #define UNDEFINED_INSTRUCTION {0, 0, nop, "UNDEFINED"}
 
 Instruction instructions[256] = {
@@ -258,7 +278,7 @@ Instruction instructions[256] = {
 	{ 1, 4, inc_d, "INC D" }, // 14
 	{ 1, 4, dec_d, "DEC D" }, // 15
 	{ 2, 8, ld_d_n, "LD D, 0x%02X" }, // 16
-	{ 1, 4, rla, "RLA" }, //17
+	{ 1, 4, rla, "RLA" }, // 17
 	UNDEFINED_INSTRUCTION, // 18
 	UNDEFINED_INSTRUCTION, // 19
 	{ 1, 8, ld_a_de, "LD A,(DE)" }, // 1A
@@ -426,22 +446,22 @@ Instruction instructions[256] = {
 	{ 1, 4, cp_a, "CP H" },
 	{ 1, 4, cp_a, "CP L" },
 	UNDEFINED_INSTRUCTION,
-	{ 1, 4, cp_a, "CP A" }, // bf
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
-	UNDEFINED_INSTRUCTION,
+	{ 1, 4, cp_a, "CP A" },			// bf
+	UNDEFINED_INSTRUCTION,			// c0
+	{ 1, 16, pop_bc, "POP BC" },	// c1
+	UNDEFINED_INSTRUCTION,			// c2
+	{ 3, 16, jp_nn, "JP 0x%04X" },	// c3
+	UNDEFINED_INSTRUCTION, // c4
+	UNDEFINED_INSTRUCTION, // c5
+	UNDEFINED_INSTRUCTION, // c6
+	UNDEFINED_INSTRUCTION, // c7
+	UNDEFINED_INSTRUCTION, // c8
+	UNDEFINED_INSTRUCTION, // c9
+	UNDEFINED_INSTRUCTION, // ca
+	UNDEFINED_INSTRUCTION, // cb 
+	{ 3, 0 /*variable ticks*/, call_z_nn, "CALL Z, 0x%04X" }, // cc
+	{ 3, 24, call_nn, "CALL 0x%04X" }, // cd
+	UNDEFINED_INSTRUCTION, // ce
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,
 	UNDEFINED_INSTRUCTION,

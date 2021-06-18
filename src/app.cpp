@@ -80,6 +80,12 @@ static std::vector<uint8_t> readBinFile(std::filesystem::path const& path)
 	return content;
 }
 
+
+App::App() : saveDialog(ImGuiFileBrowserFlags_EnterNewFilename)
+{
+	
+}
+
 void App::init()
 {
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -131,7 +137,9 @@ void App::init()
     ImGui_ImplOpenGL3_Init();
 
 	mem_edit.Open = false;
-
+	openDialog.SetTitle("File browser");
+	saveDialog.SetTitle("Save dialog");
+	
 	if (std::filesystem::exists(fileSettingsPath))
 	{
 		aini::Reader reader(readTextFile(fileSettingsPath));
@@ -219,9 +227,14 @@ void App::onGUI()
 		{
 			if (ImGui::MenuItem("Open"))
 			{
-				fileDialog.SetTitle("File browser");
-				fileDialog.Open();
+				openDialog.Open();
 			}
+
+			if (ImGui::MenuItem("save"))
+			{
+				saveDialog.Open();
+			}
+			
 			ImGui::EndMenu();
 		}
 
@@ -266,26 +279,34 @@ void App::onGUI()
 	if (mem_edit.Open)
 		mem_edit.DrawWindow("Memory Editor", gb.mmu.memMap, sizeof(gb.mmu.memMap));
 
-	fileDialog.Display();
-	if (fileDialog.HasSelected())
+	openDialog.Display();
+	if (openDialog.HasSelected())
 	{
-		std::string const filePathStr = fileDialog.GetSelected().string();
+		std::string const filePathStr = openDialog.GetSelected().string();
 		printf("selected file \"%s\"\n", filePathStr.c_str());
 		aini::Writer writer;
 		writer.set_string("lastRomPath", filePathStr);
 		std::ofstream settings(fileSettingsPath);
 		settings << writer.write();
 		
-		loadRom(fileDialog.GetSelected());
-		fileDialog.ClearSelected();
+		loadRom(openDialog.GetSelected());
+		openDialog.ClearSelected();
+	}
+
+	saveDialog.Display();
+	if (saveDialog.HasSelected())
+	{
+		std::ofstream file(openDialog.GetSelected(), std::ios::binary);
+		printf("save at \"%s\"\n", openDialog.GetSelected().string().c_str());
+		file.write((char*)gb.mmu.memMap, sizeof(gb.mmu.memMap));
+		saveDialog.ClearSelected();
 	}
 	
 	if (disassemblerOpen)
 	{
 		ImGui::Begin("Disassembler", &disassemblerOpen);
 		static int minAddress = 0, maxAddress = MMU::romSize / 16;
-		ImGui::DragInt("min address", &minAddress, 8, 0, maxAddress);
-		ImGui::DragInt("max address", &maxAddress, 8, minAddress, MMU::romSize);
+		ImGui::DragIntRange2("address", &minAddress, &maxAddress, 1, 0, MMU::romSize, "0x%04X");
 		ImGuiTableFlags constexpr flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg;
 		if (ImGui::BeginTable("disassembler table", 3, flags))
 		{
@@ -318,6 +339,13 @@ void App::onGUI()
 	if (debuggerOpen)
 	{
 		ImGui::Begin("Debugger", &debuggerOpen);
+
+		if (ImGui::Button("Start"))
+		{
+			gb.start();
+			gbStarted = true;
+		}
+
 		ImGui::Checkbox("Enable step debugging", &stepDebug);
 		
 		if (stepDebug)
@@ -350,6 +378,9 @@ void App::onGUI()
 		ImGui::Checkbox("Negative", &fb);
 
 		ImGui::PopEnabled();
+		ImGui::Separator();
+
+		ImGui::Text("CPU cycles: %I64d", gb.ticks);
 		
 		ImGui::End();
 	}
@@ -379,7 +410,7 @@ void App::loadRom(std::filesystem::path const& romPath)
 	if (size > MMU::romSize)
 	{
 		fprintf(stderr, "error : cardrige is too big\n");
-		fileDialog.ClearSelected();
+		openDialog.ClearSelected();
 		return;
 	}
 	

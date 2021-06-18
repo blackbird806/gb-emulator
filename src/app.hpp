@@ -12,7 +12,7 @@ class App
 	public:
 
 	static auto constexpr fileSettingsPath = "settings.ini";
-	
+	App();
 	void init();
 	void run();
 	void update();
@@ -26,7 +26,8 @@ class App
 	
 	Gameboy gb;
 	bool gbStarted = false;
-	ImGui::FileBrowser fileDialog;
+	ImGui::FileBrowser openDialog;
+	ImGui::FileBrowser saveDialog;
 	MemoryEditor mem_edit;
 	bool disassemblerOpen = false;
 	bool spriteViewerOpen = false;

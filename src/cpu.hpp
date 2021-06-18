@@ -46,7 +46,6 @@ struct Registers {
 	static uint8_t constexpr halfCarryFlag = 1 << 5;
 	static uint8_t constexpr carryFlag = 1 << 4;
 
-
 	bool isFlagSet(uint8_t flag) const
 	{
 		return f & flag;
@@ -62,7 +61,6 @@ struct Registers {
 		f &= ~flag;
 	}
 };
-
 
 
 struct Gameboy;

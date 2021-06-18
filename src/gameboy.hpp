@@ -15,4 +15,5 @@ struct Gameboy
 	
 	Registers registers;
 	MMU mmu;
+	uint64_t ticks = 0;
 };

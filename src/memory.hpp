@@ -22,7 +22,7 @@ struct MMU
 
 	void writeShort(uint16_t address, uint16_t value)
 	{
-		std::bit_cast<uint16_t*>(static_cast<uint8_t*>(memMap))[address] = value;
+		*std::bit_cast<uint16_t*>(&static_cast<uint8_t*>(memMap)[address]) = value;
 	}
 	
 	uint8_t readByte(uint16_t address)
@@ -32,7 +32,7 @@ struct MMU
 	
 	uint16_t readShort(uint16_t address)
 	{
-		return std::bit_cast<uint16_t*>(static_cast<uint8_t*>(memMap))[address];
+		return *std::bit_cast<uint16_t*>(&static_cast<uint8_t*>(memMap)[address]);
 	}
 	
 	uint8_t* rom()

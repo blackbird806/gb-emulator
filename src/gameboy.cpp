@@ -69,6 +69,7 @@ void Gameboy::cpuStep()
 			break;
 	}
 	registers.pc++;
+	ticks += instr.cycles;
 }
 
 std::string Gameboy::disassembleInstruction(uint16_t address)

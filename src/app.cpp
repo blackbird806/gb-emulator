@@ -15,7 +15,7 @@
 static void initDockspace()
 {
 	static bool opt_fullscreen_persistant = true;
-	bool opt_fullscreen = opt_fullscreen_persistant;
+	bool const opt_fullscreen = opt_fullscreen_persistant;
 	static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
 
 	// We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
@@ -80,8 +80,7 @@ static std::vector<uint8_t> readBinFile(std::filesystem::path const& path)
 	return content;
 }
 
-
-App::App() : saveDialog(ImGuiFileBrowserFlags_EnterNewFilename)
+App::App() : saveDialog(ImGuiFileBrowserFlags_EnterNewFilename | ImGuiFileBrowserFlags_CreateNewDir)
 {
 	
 }
@@ -296,8 +295,8 @@ void App::onGUI()
 	saveDialog.Display();
 	if (saveDialog.HasSelected())
 	{
-		std::ofstream file(openDialog.GetSelected(), std::ios::binary);
-		printf("save at \"%s\"\n", openDialog.GetSelected().string().c_str());
+		std::ofstream file(saveDialog.GetSelected(), std::ios::binary);
+		printf("save at \"%s\"\n", saveDialog.GetSelected().string().c_str());
 		file.write((char*)gb.mmu.memMap, sizeof(gb.mmu.memMap));
 		saveDialog.ClearSelected();
 	}
@@ -421,4 +420,5 @@ void App::loadRom(std::filesystem::path const& romPath)
 	char buffer[30];
 	snprintf(buffer, sizeof(buffer), "gb-emulator - %s", gb.mmu.romName());
 	SDL_SetWindowTitle(window, buffer);
+	printf("loaded %ls\n", romPath.c_str());
 }

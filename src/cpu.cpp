@@ -92,6 +92,34 @@ EACH_RR(LD_RR_NN)
 #define LD_DNN_RR(r) static void ld_dnn_##r(Gameboy& gb, uint16_t value) { gb.mmu.writeShort(value, gb.registers.##r()); }
 EACH_RR(LD_DNN_RR)
 
+static void ldi_dhl_a(Gameboy& gb)
+{
+	gb.mmu.writeByte(gb.registers.hl(), gb.registers.a);
+	gb.registers.hl()++;
+}
+
+static void ldi_a_dhl(Gameboy& gb)
+{
+	gb.registers.a = gb.registers.hl();
+	gb.registers.hl()++;
+}
+
+static void ldd_dhl_a(Gameboy& gb)
+{
+	gb.mmu.writeByte(gb.registers.hl(), gb.registers.a);
+	gb.registers.hl()--;
+}
+
+static void ldd_a_dhl(Gameboy& gb)
+{
+	gb.registers.a = gb.registers.hl();
+	gb.registers.hl()--;
+}
+
+
+//#define LD_RR_RR(rr1, rr2) static void ld_##rr1##_##rr2(Gameboy& gb) { gb.registers.##rr1() = gb.registers.##rr2(); }
+
+
 static void ld_dnn_sp(Gameboy& gb, uint16_t value)
 {
 	gb.mmu.writeShort(value, gb.registers.sp);
@@ -202,6 +230,34 @@ static void jp_nn(Gameboy& gb, uint16_t value)
 	gb.registers.pc = value;
 }
 
+static void jr_nz_n(Gameboy& gb, uint8_t value)
+{
+	if (gb.registers.isFlagSet(Registers::zeroFlag))
+		gb.ticks += 8;
+	else
+	{
+		gb.registers.pc += value;
+		gb.ticks += 12;
+	}
+}
+
+static void jr_z_n(Gameboy& gb, uint8_t value)
+{
+	if (gb.registers.isFlagSet(Registers::zeroFlag))
+	{
+		gb.registers.pc += value;
+		gb.ticks += 12;
+	}
+	else
+		gb.ticks += 8;
+}
+
+static void jr_n(Gameboy& gb, uint8_t value)
+{
+	gb.registers.pc += value;
+	__debugbreak();
+}
+
 static void rrca(Gameboy& gb)
 {
 	uint8_t const carry = gb.registers.a & 0x01;
@@ -252,6 +308,51 @@ static void call_nn(Gameboy& gb, uint16_t value)
 	gb.registers.pc = value;
 }
 
+static void rra(Gameboy& gb)
+{
+	int const carry = (gb.registers.isFlagSet(Registers::carryFlag) ? 1 : 0) << 7;
+
+	if (gb.registers.a & 0x01)
+		gb.registers.setFlags(Registers::carryFlag);
+	else
+		gb.registers.clearFlags(Registers::carryFlag);
+
+	gb.registers.a >>= 1;
+	gb.registers.a += carry;
+	
+	gb.registers.clearFlags(Registers::negativeFlag | Registers::zeroFlag | Registers::halfCarryFlag);
+}
+
+static void daa(Gameboy& gb)
+{
+	uint16_t s = gb.registers.a;
+
+	if (gb.registers.isFlagSet(Registers::negativeFlag)) 
+	{
+		if (gb.registers.isFlagSet(Registers::halfCarryFlag)) 
+			s = (s - 0x06) & 0xFF;
+		if (gb.registers.isFlagSet(Registers::carryFlag)) 
+			s -= 0x60;
+	}
+	else {
+		if (gb.registers.isFlagSet(Registers::halfCarryFlag) || (s & 0xF) > 9) 
+			s += 0x06;
+		if (gb.registers.isFlagSet(Registers::carryFlag) || s > 0x9F) 
+			s += 0x60;
+	}
+
+	gb.registers.a = s;
+	gb.registers.clearFlags(Registers::halfCarryFlag);
+
+	if (gb.registers.a) 
+		gb.registers.clearFlags(Registers::zeroFlag);
+	else 
+		gb.registers.setFlags(Registers::zeroFlag);
+
+	if (s >= 0x100) 
+		gb.registers.setFlags(Registers::carryFlag);
+}
+
 #define UNDEFINED_INSTRUCTION {0, 0, nop, "UNDEFINED"}
 
 Instruction instructions[256] = {
@@ -279,25 +380,25 @@ Instruction instructions[256] = {
 	{ 1, 4, dec_d, "DEC D" }, // 15
 	{ 2, 8, ld_d_n, "LD D, 0x%02X" }, // 16
 	{ 1, 4, rla, "RLA" }, // 17
-	UNDEFINED_INSTRUCTION, // 18
-	UNDEFINED_INSTRUCTION, // 19
+	{ 2, 12, jr_n, "JR 0x%02X" }, // 18
+	{ 1, 8, add_de, "ADD DE" }, // 19
 	{ 1, 8, ld_a_de, "LD A,(DE)" }, // 1A
 	{ 1, 8, dec_de, "DEC DE" }, // 1B
 	{ 1, 4, inc_e, "INC E" }, // 1C
 	{ 1, 4, dec_e, "DEC E" }, // 1D
-	UNDEFINED_INSTRUCTION, // 1E
-	UNDEFINED_INSTRUCTION, // 1F
-	UNDEFINED_INSTRUCTION, // 20
-	UNDEFINED_INSTRUCTION, // 21
-	UNDEFINED_INSTRUCTION, // 22
+	{ 2, 8, ld_e_n, "LD E, 0x%02X" }, // 1E
+	{ 1, 4, rra, "RRA" }, // 1F
+	{ 2, 0, jr_nz_n, "JR NZ, 0x%02X" }, // 20
+	{ 3, 12, ld_hl_nn, "LD HL, 0x%04X" }, // 21
+	{ 1, 8, ldi_dhl_a, "LDI (HL), A" }, // 22
 	{ 1, 8, inc_hl, "INC HL" }, // 23
 	{ 1, 4, inc_h, "INC H" }, // 24
 	{ 1, 4, dec_h, "DEC H" }, // 25
-	UNDEFINED_INSTRUCTION, // 26
-	UNDEFINED_INSTRUCTION, // 27
-	UNDEFINED_INSTRUCTION, // 28
-	UNDEFINED_INSTRUCTION, // 29
-	UNDEFINED_INSTRUCTION, // 2a
+	{ 2, 8, ld_h_n, "LD H, 0x%02X" }, // 26
+	{ 1, 4, daa, "DAA" }, // 27 
+	{ 2, 0, jr_z_n, "JR Z, 0x%02X" }, // 28
+	{ 1, 8, add_hl, "ADD HL"}, // 29
+	{ 1, 8, ldi_a_dhl, "LDI A, (HL)" }, // 2a
 	{ 1, 8, dec_hl, "DEC HL" }, // 2B
 	{ 1, 4, inc_l, "INC L" }, // 2c
 	{ 1, 4, dec_l, "DEC L" }, // 2d
